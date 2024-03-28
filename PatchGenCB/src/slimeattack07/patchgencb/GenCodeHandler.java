@@ -11,9 +11,8 @@ import java.io.IOException;
  */
 public class GenCodeHandler {
 
-	public void execute() {
-		String dir = System.getProperty("user.dir");
-		System.out.println(String.format("Running from directory '%s'", dir));
+	public static void execute() {
+		System.out.println(String.format("Running from directory '%s'", PatchGenCB.working_dir));
 		createFiles();
 		Utils.displayError("PatchGen: Code generator", "Generated code.");
 	}
@@ -21,21 +20,33 @@ public class GenCodeHandler {
 	/** Generate files.
 	 * 
 	 */
-	private void createFiles() {
+	private static void createFiles() {
 		File[] files = new File[4];
-		files[0] = Utils.requestFile("annotations", "Watchable", "java");
-		files[1] = Utils.requestFile("annotations", "CategoryInfo", "java");
+		files[0] = Utils.requestFile("annotations", "Watchable", "txt");
+		files[1] = Utils.requestFile("annotations", "CategoryInfo", "txt");
 		files[2] = Utils.requestFile("patchnotes", "basic", "css");
 		files[3] = Utils.requestFile("patchnotes", "basic", "js");
 		
-		for(File file : files) {
+		for(int i = 0; i < files.length; i++) {
+			File file = files[i];
+			
 			if(file != null) {
 				try (BufferedWriter bw = new BufferedWriter(new FileWriter(file));) {
 					// TODO: Add version check If I decide to ever update this plugin.
+					
+					String code = "";
+					
+					switch(i) {
+					case 0: code = Watchable.getCode(); break;
+					case 1: code = CategoryInfo.getCode(); break;
+					case 2: code = BasicStyle.getStyle(); break;
+					default: code = BasicStyleJS.getScript(); break;
+					}
+					
 					if (file.exists()) 
-						bw.append(Watchable.getCode());
+						bw.append(code);
 					else if(file.createNewFile())
-						bw.append(Watchable.getCode());
+						bw.append(code);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

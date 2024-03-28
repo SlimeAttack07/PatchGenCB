@@ -11,21 +11,18 @@ public class Watchable{
 	 */
 	public static String getCode() {
 		return """
-package patchgen.annotations;
+To use this annotation, use @Watchable.
+To provide parameters, use @Watchable(paramname = value), for example: @Watchable(id = "object_one").
+This annotation works for: Fields.
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+It requires the following parameters:
+-	id, which should be a String.
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-public @interface Watchable {
-	public String id();
-	public String name() default "";
-	public String category() default "";
-	public boolean bulleted() default true;
-}				
+It supports the following optional parameters:
+-	name, which should be a String and is empty by default. Use this to assign a name to the field.
+-	category, which should be a String and is empty by default. Use this to assign a category to the field.
+-	bulleted, which should be a boolean and is true by default. Use this to determine whether a bullet point is generated.
+-	after, Which should be a String and is empty by default. Use this to make the change detector start after a given String.
 		""";
 	}
 }

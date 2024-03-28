@@ -5,7 +5,7 @@ import java.io.IOException;
 
 public class ResetTextHandler {
 
-	public void execute() {
+	public static void execute() {
 		if(Utils.displayYesNo("PatchGen: Reset text file", "Would you like to clear the text.json file to start fresh for the next patch?")) {
 			File file = Utils.requestFile("data", "text", ".json");
 			

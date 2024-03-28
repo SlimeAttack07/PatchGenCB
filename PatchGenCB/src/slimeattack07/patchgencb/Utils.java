@@ -58,13 +58,12 @@ public class Utils {
 			// TODO: Make folder/file gen run on plugin load?
 			// Check if patchgen folder exists, create if it doesn't exist.
 		
-			String directory = System.getProperty("user.dir");
-			File folder_patchgen = new File(directory, "src/patchgen");
+			File folder_patchgen = new File(PatchGenCB.working_dir, "src/patchgen");
 
 			if (!folder_patchgen.exists())
 				folder_patchgen.mkdir();
 
-			File folder_dir = new File(directory, String.format("src/patchgen/%s", dir));
+			File folder_dir = new File(PatchGenCB.working_dir, String.format("src/patchgen/%s", dir));
 
 			// Check if patchgen/dir folder exists, create if it doesn't exist.
 			if (!folder_dir.exists())
@@ -72,7 +71,7 @@ public class Utils {
 			
 			String real_name = (name == null || name.isBlank()) ? "NONAMEPROVIDED" : name;
 			
-			File file = new File(directory, String.format("src/patchgen/%s/%s.%s", dir, real_name, extension));
+			File file = new File(PatchGenCB.working_dir, String.format("src/patchgen/%s/%s.%s", dir, real_name, extension));
 			return file;
 		} catch (SecurityException e) {
 			e.printStackTrace();
@@ -93,13 +92,12 @@ public class Utils {
 			// TODO: Make folder/file gen run on plugin load?
 			// Check if patchgen folder exists, create if it doesn't exist.
 		
-			String directory = System.getProperty("user.dir");
-			File folder_parent = new File(directory, String.format("src/%s", dir));
+			File folder_parent = new File(PatchGenCB.working_dir, String.format("src/%s", dir));
 
 			if (!folder_parent.exists())
 				folder_parent.mkdir();
 
-			File folder_dir = new File(directory, String.format("src/%s/%s", dir, name));
+			File folder_dir = new File(PatchGenCB.working_dir, String.format("src/%s/%s", dir, name));
 
 			// Check if patchgen/dir folder exists, create if it doesn't exist.
 			if (!folder_dir.exists())

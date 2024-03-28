@@ -14,7 +14,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 
 public class AddTextHandler {
-	public void execute() {
+	public static void execute() {
 		//TODO: Check id
 		
 		String category = Utils.displayNotBlankInput("PatchGen: Add Text", "What category should this text be placed in?");
@@ -57,7 +57,7 @@ public class AddTextHandler {
 	 * @param text The text to process.
 	 * @return True if processing was successful, false otherwise.
 	 */
-	private boolean processText(String id, String category, boolean devcom, String text) {
+	private static boolean processText(String id, String category, boolean devcom, String text) {
 		File file = Utils.requestFile("data", "text", ".json");
 		JsonArray arr = new JsonArray();
 		

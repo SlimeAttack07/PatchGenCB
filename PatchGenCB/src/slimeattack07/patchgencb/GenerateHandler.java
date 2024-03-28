@@ -13,30 +13,57 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import slimeattack07.patchgencb.filters.DirectoryFileFilter;
+import slimeattack07.patchgencb.filters.NotTextFileFilter;
+
 /**
  * Handler for the 'generate' button in the view screen. Handles generation of
  * patch notes as well as updating the monitored data.
  */
 public class GenerateHandler {
-	// TODO: Make log to expose what plugin is doing and if it has encountered
+	// TODO: Make log to expose what program is doing and if it has encountered
 	// errors.
-	public void execute() {
-		String dir = System.getProperty("user.dir");
-		System.out.println(String.format("Running from directory '%s'", dir));
+	public static void execute() {
+		System.out.println(String.format("Running from directory '%s'", PatchGenCB.working_dir));
 
-		processProject();
+		File root = new File(PatchGenCB.working_dir);
+		
+		if(!root.isDirectory()) {
+			System.out.println("This is not a folder! I can't start from here.");
+			return;
+		}
+		
+		processProject(root);
 
-		Utils.displayInfo("Generate patch notes", String.format("Generated patch notes for project '%s'", dir));
+		Utils.displayInfo("Generate patch notes", String.format("Generated patch notes for project '%s'", PatchGenCB.working_dir));
 	}
 
 	/**
 	 * Processes a project, generating patch notes.
 	 * 
 	 */
-	private void processProject() {
+	private static void processProject(File dir) {
 		JsonArray data = new JsonArray();
+		
+		for (File file : dir.listFiles(new NotTextFileFilter())) {
+			System.out.println(String.format("Found file %s", file.getName()));
+		}
+		
+		for (File file : dir.listFiles(new DirectoryFileFilter())) {
+//			System.out.println(String.format("Found dir %s", file.getName()));
+			processProject(file);
+		}
+		
+		if (!data.isEmpty()) {
+			JsonObject data_object = new JsonObject();
+			data_object.add(PatchNoteData.DATA, data);
+			createFiles(data_object);
+		} else {
+			System.out.println("Nothing changed!");
+			Utils.displayWarning("Generate patch notes", "Failed to detect any changes.");
+		}
 
-		// TODO: Make the code for reading stuff.
+		// TODO: Make the code for reading stuff. Make sure to exclude Watchable and CategoryInfo.
 	}
 
 	/** TODO: Rewrite stuff here.
@@ -46,10 +73,9 @@ public class GenerateHandler {
 	 * @return A JsonObject holding the data related to the field.
 	 */
 	@Nullable
-	private JsonObject processAnnotations(ArrayList<String> annotations, String category) {
-		for (String ann : annotations) {
-			if (ann.equals("Watchable")) { // TODO: Make these constants
-				System.out.println(String.format("   Annotation info: %s", ann));
+	private JsonObject processAnnotations(String annotation, String category) {
+			if (annotation.equals("Watchable")) { // TODO: Fix this, don't use annotation here.
+				System.out.println(String.format("   Annotation info: %s", annotation));
 				JsonObject outer = new JsonObject();
 				Object value = "todo";
 
@@ -95,7 +121,6 @@ public class GenerateHandler {
 				System.out.println(outer);
 				return outer;
 			}
-		}
 
 		return null;
 	}
@@ -107,7 +132,7 @@ public class GenerateHandler {
 	 * @param result    The resulted text to put in the file.
 	 * @param overwrite Whether an existing file should be overwritten.
 	 */
-	private void createFiles(JsonObject result) {
+	private static void createFiles(JsonObject result) {
 		// TODO: Make folder/file gen run on plugin load?
 		// Check if patchgen folder exists, create if it doesn't exist.
 		Utils.requestDir("", "patchgen");
@@ -148,7 +173,7 @@ public class GenerateHandler {
 	 * 
 	 * @param new_version The new version.
 	 */
-	private void compareToVersion(String new_version) {
+	private static void compareToVersion(String new_version) {
 		// TODO: Add version check. Temporarily using System.in for testing.
 		boolean accepted = false;
 		File file_new = null;
@@ -193,6 +218,20 @@ public class GenerateHandler {
 			data_new.genNotes(data_old, old_version, new_version);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void processFile(File f) {
+		try(BufferedReader br = new BufferedReader(new FileReader(f))){
+			String line = br.readLine();
+			boolean ready = false;
+			
+			while(line != null) {
+				
+				line = br.readLine();
+			}
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
