@@ -164,7 +164,7 @@ public class PatchNoteData {
 		gen.finish();
 		
 		if(Utils.displayYesNo("PatchGen: Reset text file", "Would you like to clear the text.json file to start fresh for the next patch? You can always use the 'ResetText' button to do this at any time yourself.")) {
-			File file = Utils.requestFile("data", "text", ".json");
+			File file = Utils.requestFile("data", "text", "json");
 			
 			if(file.exists())
 				try (FileWriter fw = new FileWriter(file)){
@@ -212,7 +212,7 @@ public class PatchNoteData {
 	 */
 	@Nullable
 	private CategoryData saveCategories() {
-		File file = Utils.requestFile("data", "categories", ".json");
+		File file = Utils.requestFile("data", "categories", "json");
 		
 		if(file == null)
 			return null;
@@ -225,6 +225,12 @@ public class PatchNoteData {
 				cats = gson.fromJson(reader, CategoryData.class);
 			} catch (IOException | JsonSyntaxException | JsonIOException e) {
 				e.printStackTrace();
+			}
+		}
+		else {
+			try {
+				file.createNewFile();
+			} catch (IOException | SecurityException e) {
 			}
 		}
 		
@@ -292,7 +298,7 @@ public class PatchNoteData {
 	 */
 	@Nullable
 	private JsonArray retrieveText() {
-		File file = Utils.requestFile("data", "text", ".json");
+		File file = Utils.requestFile("data", "text", "json");
 		
 		if(file.exists()) {
 			try(Reader reader = new BufferedReader(new FileReader(file));){
@@ -317,7 +323,7 @@ public class PatchNoteData {
 	private String compareValues(JsonObject entry, JsonObject match) {
 		JsonElement old_value = match.get(VALUE);
 		JsonElement new_value = entry.get(VALUE);
-		
+				
 		if(old_value != null && new_value != null) {
 			if(old_value.getAsJsonPrimitive().isBoolean() && new_value.getAsJsonPrimitive().isBoolean()) {
 				if(old_value.getAsBoolean() != new_value.getAsBoolean()) {
@@ -525,8 +531,12 @@ public class PatchNoteData {
 					if(!temp1.equals(temp2)) {
 						int prio1 = getPrio(temp1);
 						int prio2 = getPrio(temp2);
+						int result = Integer.compare(prio1, prio2);
 						
-						return Integer.compare(prio1, prio2);
+						if(result != 0)
+							return result;
+						
+						return cats.getName(temp1).compareToIgnoreCase(cats.getName(temp2));
 					}
 					
 					temp1 += ".";

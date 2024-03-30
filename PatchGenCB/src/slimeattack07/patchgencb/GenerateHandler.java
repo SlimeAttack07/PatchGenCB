@@ -33,7 +33,7 @@ public class GenerateHandler {
 			return;
 		}
 		
-		processProject(root);
+		processProject(root, true);
 
 		Utils.displayInfo("Generate patch notes", String.format("Generated patch notes for project '%s'", PatchGenCB.working_dir));
 	}
@@ -42,28 +42,31 @@ public class GenerateHandler {
 	 * Processes a project, generating patch notes.
 	 * 
 	 */
-	private static void processProject(File dir) {
+	private static JsonArray processProject(File dir, boolean is_root) {
 		JsonArray data = new JsonArray();
 		
 		for (File file : dir.listFiles(new NotTextFileFilter())) {
 			System.out.println(String.format("Found file %s", file.getName()));
+			data.addAll(processFile(file));
 		}
 		
 		for (File file : dir.listFiles(new DirectoryFileFilter())) {
 //			System.out.println(String.format("Found dir %s", file.getName()));
-			processProject(file);
+			data.addAll(processProject(file, false));
 		}
 		
-		if (!data.isEmpty()) {
-			JsonObject data_object = new JsonObject();
-			data_object.add(PatchNoteData.DATA, data);
-			createFiles(data_object);
-		} else {
-			System.out.println("Nothing changed!");
-			Utils.displayWarning("Generate patch notes", "Failed to detect any changes.");
+		if(is_root) {
+			if (!data.isEmpty()) {
+				JsonObject data_object = new JsonObject();
+				data_object.add(PatchNoteData.DATA, data);
+				createFiles(data_object);
+			} else{
+				System.out.println("Nothing changed!");
+				Utils.displayWarning("Generate patch notes", "Failed to detect any changes.");
+			}
 		}
-
-		// TODO: Make the code for reading stuff. Make sure to exclude Watchable and CategoryInfo.
+		
+		return data;
 	}
 
 	/** TODO: Rewrite stuff here.
@@ -72,57 +75,49 @@ public class GenerateHandler {
 	 * @param category The category id to overwrite the field's category with. Will not overwrite if the empty String is provided.
 	 * @return A JsonObject holding the data related to the field.
 	 */
-	@Nullable
-	private JsonObject processAnnotations(String annotation, String category) {
-			if (annotation.equals("Watchable")) { // TODO: Fix this, don't use annotation here.
-				System.out.println(String.format("   Annotation info: %s", annotation));
-				JsonObject outer = new JsonObject();
-				Object value = "todo";
+	private static JsonObject processAnnotations(Object value, ArrayList<AnnotationPair> annotations, String category) {
+		JsonObject outer = new JsonObject();
 
-				// Store value of field.
-				if (value instanceof Number)
-					outer.addProperty(PatchNoteData.VALUE, (Number) value);
-				else if (value instanceof Boolean)
-					outer.addProperty(PatchNoteData.VALUE, (Boolean) value);
-				else
-					outer.addProperty(PatchNoteData.VALUE, value.toString());
-				/*
-				// Store info like category and name (if provided).
-				for (IMemberValuePair pair : ann.getMemberValuePairs()) {
-					System.out.println(String.format("      Pair %s %s", pair.getMemberName(), pair.getValue()));
-
-					switch (pair.getMemberName()) {
-					case PatchNoteData.ID:
-						outer.addProperty(PatchNoteData.ID, pair.getValue().toString());
-						break;
-					case PatchNoteData.CATEGORY:
-						if(category.isBlank())
-							outer.addProperty(PatchNoteData.CATEGORY, pair.getValue().toString());
-						
-						break;
-						
-					case PatchNoteData.NAME:
-						outer.addProperty(PatchNoteData.NAME, pair.getValue().toString());
-						break;
-					case PatchNoteData.BULLETED:
-						outer.addProperty(PatchNoteData.BULLETED, (boolean) pair.getValue());
-						break;
-					default:
-						System.out.println(String.format("Unknown memberpair: %s = %s", pair.getMemberName(),
-								pair.getValue()));
-						break;
-					}
-				}
-				*/
-				if(!category.isBlank())
-					outer.addProperty(PatchNoteData.CATEGORY, category);
-					
-				System.out.println("Generated following JSON:");
-				System.out.println(outer);
-				return outer;
+		// Store value of field.
+		if (value instanceof Number)
+			outer.addProperty(PatchNoteData.VALUE, (Number) value);
+		else if (value instanceof Boolean)
+			outer.addProperty(PatchNoteData.VALUE, (Boolean) value);
+		else
+			outer.addProperty(PatchNoteData.VALUE, value.toString());
+		
+		for(AnnotationPair annotation : annotations) {
+			System.out.println(String.format("   Annotation info: %s", annotation));
+			// Store info like category and name (if provided).
+			switch (annotation.getName()) {
+			case PatchNoteData.ID:
+				outer.addProperty(PatchNoteData.ID, annotation.getValue().toString());
+				break;
+			case PatchNoteData.CATEGORY:
+				if(category.isBlank())
+					outer.addProperty(PatchNoteData.CATEGORY, annotation.getValue().toString());
+				
+				break;
+				
+			case PatchNoteData.NAME:
+				outer.addProperty(PatchNoteData.NAME, annotation.getValue().toString());
+				break;
+			case PatchNoteData.BULLETED:
+				outer.addProperty(PatchNoteData.BULLETED, annotation.getValue().equals("true"));
+				break;
+			default:
+				System.out.println(String.format("Unknown memberpair: %s = %s", annotation.getName(),
+						annotation.getValue()));
+				break;
 			}
-
-		return null;
+		}
+			
+		if(!category.isBlank())
+			outer.addProperty(PatchNoteData.CATEGORY, category);
+			
+		System.out.println("Generated following JSON:");
+		System.out.println(outer);
+		return outer;
 	}
 
 	/**
@@ -152,9 +147,17 @@ public class GenerateHandler {
 				return;
 			}
 
-			File file = Utils.requestUniqueFile("patchgen/data", version, "json");
+			File file = Utils.requestUniqueFile("data", version, "json");
 
 			if(file != null) {
+				if(!file.exists()) {
+					try {
+						file.createNewFile();
+					} catch (IOException | SecurityException e) {
+						e.printStackTrace();
+					}
+				}
+				
 				try(BufferedWriter bw = new BufferedWriter(new FileWriter(file));){
 					accepted = true;
 					bw.append(result.toString());
@@ -182,7 +185,7 @@ public class GenerateHandler {
 		
 		while(!accepted) {
 			System.out.println("Comparison: Specify version to compare to:");
-			old_version = Utils.displayNotBlankInput("Version input", "Specify version to compare to. Enter 'cancel' to cancel.", "categories");
+			old_version = Utils.displayNotBlankInput("Version input", "Specify version to compare to. Type 'cancel' to cancel.", "categories");
 
 			// TODO: Add way to determine if other versions even exist to compare to.
 			if (old_version.toLowerCase().equals("cancel")) {
@@ -210,7 +213,7 @@ public class GenerateHandler {
 
 		try ( // Auto-closes resources
 				Reader reader_new = new BufferedReader(new FileReader(file_new));
-				Reader reader_old = new BufferedReader(new FileReader(file_new));) {
+				Reader reader_old = new BufferedReader(new FileReader(file_old));) {
 			Gson gson = new Gson();
 
 			PatchNoteData data_new = gson.fromJson(reader_new, PatchNoteData.class);
@@ -222,17 +225,132 @@ public class GenerateHandler {
 		}
 	}
 	
-	private void processFile(File f) {
+	private static JsonArray processFile(File f) {
+		JsonArray results = new JsonArray();
+		
 		try(BufferedReader br = new BufferedReader(new FileReader(f))){
 			String line = br.readLine();
 			boolean ready = false;
+			String category = "";
+			ArrayList<AnnotationPair> ann_details = new ArrayList<>();
 			
 			while(line != null) {
+				if(ready) {
+					Object value = getValue(line, ann_details);
+					results.add(processAnnotations(value, ann_details, category));
+					ann_details.clear();
+					ready = false;
+				}
+				else if(line.contains("@CategoryInfo(") && line.contains(")")) {
+					String params = line.substring(line.indexOf("@CategoryInfo(") + 14, line.indexOf(")"));
+					params = params.replace(" ", "");
+					String[] parts = params.split(",");
+					
+					for(String part : parts) {
+						if(part.contains("id=\"")) {
+							int start = part.indexOf("id=\"");
+							category = part.substring(start + 4, part.indexOf("\"", start + 4));
+						}
+					}
+				}
+				else if(line.contains("@Watchable(") && line.contains(")")) {
+					String params = line.substring(line.indexOf("@Watchable(") + 11, line.indexOf(")"));
+					
+					String[] parts = params.split(",");
+					
+					for(String part : parts) {
+						String[] components = part.split("=");
+						
+						if(components.length > 1)
+						ann_details.add(new AnnotationPair(components[0].trim(), components[1].replace("\"", "").trim()));
+					}
+					
+					ready = true;
+				}
 				
 				line = br.readLine();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+		
+		return results;
+	}
+	
+	private static Object getValue(String line, ArrayList<AnnotationPair> anns) {
+		String left = line;
+		boolean modified = false;
+		
+		for(AnnotationPair pair : anns) {
+			if(pair.isAfter()) {
+				String[] parts = left.split(pair.getValue());
+				
+				if(parts.length > 1) {
+					left = parts[1];
+					modified = true;
+				}
+			}
+			else if(pair.isUntil()) {
+				String[] parts = left.split(pair.getValue());
+				
+				if(parts.length > 1) {
+					left = parts[0];
+					modified = true;
+				}
+			}
+		}
+		
+		if(!modified) {
+			String[] parts = left.split("=");
+			
+			if(parts.length > 1)
+				left = parts[1];
+		}
+		
+		left = left.trim();
+		
+		if(left.toLowerCase().equals("true"))
+			return Boolean.TRUE;
+		
+		if(left.toLowerCase().equals("false"))
+			return Boolean.FALSE;
+		
+		try {
+			return Float.valueOf((Float.parseFloat(left)));
+		} catch(NumberFormatException e) {
+		}
+		
+		return left;
+	}
+	
+	private static class AnnotationPair{
+		private final String NAME;
+		private final String VALUE;
+		
+		private AnnotationPair(String name, String value) {
+			NAME = name;
+			VALUE = value;
+		}
+		
+		private String getName() {
+			return NAME;
+		}
+		
+		private String getValue() {
+			return VALUE;
+		}
+		
+		private boolean isAfter() {
+			return NAME.equals("after");
+		}
+		
+		private boolean isUntil() {
+			return NAME.equals("until");
+		}
+		
+		@Override
+		public String toString() {
+			return NAME + " = " + VALUE;
 		}
 	}
 }

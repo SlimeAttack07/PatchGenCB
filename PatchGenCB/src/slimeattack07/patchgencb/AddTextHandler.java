@@ -58,7 +58,7 @@ public class AddTextHandler {
 	 * @return True if processing was successful, false otherwise.
 	 */
 	private static boolean processText(String id, String category, boolean devcom, String text) {
-		File file = Utils.requestFile("data", "text", ".json");
+		File file = Utils.requestFile("data", "text", "json");
 		JsonArray arr = new JsonArray();
 		
 		if(file.exists()) {

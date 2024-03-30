@@ -41,6 +41,12 @@ public class Utils {
 			
 			return null;
 		}
+		else {
+			try {
+				file.createNewFile();
+			} catch(IOException | SecurityException e) {
+			}
+		}
 		
 		return file;
 	}
@@ -283,7 +289,7 @@ public class Utils {
 	 */
 	@Nullable
 	public static String isValidNotBlank(ArrayList<String> illegal, String newText) {
-		return newText.isBlank() ? "Can't be blank" : 
+		return newText == null || newText.isBlank() ? "Can't be blank" : 
 			illegal.contains(newText) ? String.format("'%s' is not permitted", newText) : null;
 	}
 }

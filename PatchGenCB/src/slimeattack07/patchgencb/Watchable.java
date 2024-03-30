@@ -23,6 +23,8 @@ It supports the following optional parameters:
 -	category, which should be a String and is empty by default. Use this to assign a category to the field.
 -	bulleted, which should be a boolean and is true by default. Use this to determine whether a bullet point is generated.
 -	after, Which should be a String and is empty by default. Use this to make the change detector start after a given String.
+-	until, Which should be a String and is empty by default. Use this to make the change detector stop after a given String.
+     For correct behavior, combining 'after' and 'until' requires 'after' to be placed BEFORE 'until'.
 		""";
 	}
 }
