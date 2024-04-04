@@ -105,6 +105,8 @@ public class GenerateHandler {
 			case PatchNoteData.BULLETED:
 				outer.addProperty(PatchNoteData.BULLETED, annotation.getValue().equals("true"));
 				break;
+			case "after": break;
+			case "until": break;
 			default:
 				System.out.println(String.format("Unknown memberpair: %s = %s", annotation.getName(),
 						annotation.getValue()));
