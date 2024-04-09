@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -26,7 +27,7 @@ public class GenerateHandler {
 	public static void execute() {
 		System.out.println(String.format("Running from directory '%s'", PatchGenCB.working_dir));
 
-		File root = new File(PatchGenCB.working_dir);
+		File root = new File(PatchGenCB.working_dir + "/src");
 		
 		if(!root.isDirectory()) {
 			System.out.println("This is not a folder! I can't start from here.");
@@ -244,7 +245,7 @@ public class GenerateHandler {
 					ready = false;
 				}
 				else if(line.contains("@CategoryInfo(") && line.contains(")")) {
-					String params = line.substring(line.indexOf("@CategoryInfo(") + 14, line.indexOf(")"));
+					String params = line.substring(line.indexOf("@CategoryInfo(") + 14, line.lastIndexOf(")"));
 					params = params.replace(" ", "");
 					String[] parts = params.split(",");
 					
@@ -256,15 +257,18 @@ public class GenerateHandler {
 					}
 				}
 				else if(line.contains("@Watchable(") && line.contains(")")) {
-					String params = line.substring(line.indexOf("@Watchable(") + 11, line.indexOf(")"));
+					String params = line.substring(line.indexOf("@Watchable(") + 11, line.lastIndexOf(")"));
+					// To use a comma inside quotes, it must be escaped.
+					String replacement = "$$$PATCHGEN$$$";
+					params = params.replace("\\,", replacement);
 					
 					String[] parts = params.split(",");
 					
 					for(String part : parts) {
-						String[] components = part.split("=");
+						String[] components = part.replace(replacement, ",").split("=");
 						
 						if(components.length > 1)
-						ann_details.add(new AnnotationPair(components[0].trim(), components[1].replace("\"", "").trim()));
+							ann_details.add(new AnnotationPair(components[0].trim(), components[1].replace("\"", "").trim()));
 					}
 					
 					ready = true;
@@ -285,7 +289,7 @@ public class GenerateHandler {
 		
 		for(AnnotationPair pair : anns) {
 			if(pair.isAfter()) {
-				String[] parts = left.split(pair.getValue());
+				String[] parts = left.split(Pattern.quote(pair.getValue()));
 				
 				if(parts.length > 1) {
 					left = parts[1];
@@ -293,12 +297,10 @@ public class GenerateHandler {
 				}
 			}
 			else if(pair.isUntil()) {
-				String[] parts = left.split(pair.getValue());
+				String[] parts = left.split(Pattern.quote(pair.getValue()));
 				
-				if(parts.length > 1) {
-					left = parts[0];
-					modified = true;
-				}
+				left = parts[0];
+				modified = true;
 			}
 		}
 		
